@@ -2,7 +2,7 @@ import Editor from '@monaco-editor/react';
 import { useEffect, useRef, useState } from 'react';
 import './CodeEditor.css'; // Asigură-te că CSS-ul rămâne importat
 
-const WS_URL = 'ws://localhost:3001';
+const WS_URL = 'ws://192.168.168.128:3001';
 
 export default function CodeEditor() {
     // --- STĂRI (STATES) ---
@@ -176,7 +176,7 @@ export default function CodeEditor() {
         wsRef.current?.send(JSON.stringify({ type: 'output-update', output: startMsg }));
 
         try {
-            const res = await fetch('http://localhost:3001/run', {
+            const res = await fetch('http://192.168.168.128:3001/run', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ code, language, stdin })
@@ -210,7 +210,7 @@ export default function CodeEditor() {
         const codeAfter = model.getValueInRange({ startLineNumber: position.lineNumber, startColumn: position.column, endLineNumber: model.getLineCount(), endColumn: model.getLineMaxColumn(model.getLineCount()) });
 
         try {
-            const response = await fetch('http://localhost:3001/ai', {
+            const response = await fetch('http://192.168.168.128:3001/ai', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ codeBefore, codeAfter, language })

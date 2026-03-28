@@ -2,19 +2,19 @@ import Editor from '@monaco-editor/react';
 import { useEffect, useRef, useState } from 'react';
 import './CodeEditor.css'; // <-- Importul noului fișier CSS
 
-// Șterge const WS_URL = 'ws://localhost:3001'; și pune asta:
+//Port-ul server-ului
 const HOST = window.location.hostname; // Va lua automat IP-ul corect
 const WS_URL = `ws://${HOST}:3001`;
 const API_URL = `http://${HOST}:3001/run`;
 
 export default function CodeEditor() {
+    //Starile initiale
     const [language, setLanguage] = useState('python');
     const [isRunning, setIsRunning] = useState(false);
     const [code, setCode] = useState('# scrie cod aici\n');
     const [output, setOutput] = useState('');
     const [isDragging, setIsDragging] = useState(false);
     const [stdin, setStdin] = useState(''); // Starea pentru datele de intrare
-
     const [connectedUsers, setConnectedUsers] = useState(1);
     const [fileName, setFileName] = useState('fisier_nou.txt');
 
@@ -24,6 +24,7 @@ export default function CodeEditor() {
     const monacoRef = useRef(null);
     const fileInputRef = useRef(null);
 
+    //Se verifica daca s-a modificat ceva
     useEffect(() => {
         const ws = new WebSocket(WS_URL);
         wsRef.current = ws;

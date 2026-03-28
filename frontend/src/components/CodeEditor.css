@@ -1,0 +1,172 @@
+/* CodeEditor.css */
+
+.editor-container {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    background-color: #1e1e1e;
+    position: relative;
+}
+
+.drag-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.8);
+    color: #4CAF50;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 32px;
+    font-weight: bold;
+    z-index: 1000;
+    border: 4px dashed #4CAF50;
+}
+
+/* Toolbar & Elements */
+.toolbar {
+    display: flex;
+    align-items: center;
+    padding: 10px 15px;
+    gap: 15px;
+    background-color: #252526;
+    color: white;
+    border-bottom: 1px solid #3c3c3c;
+    flex-wrap: wrap;
+}
+
+.users-indicator {
+    display: flex;
+    align-items: center;
+    background: #333;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 14px;
+}
+
+.status-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    background-color: #4CAF50;
+    border-radius: 50%;
+    margin-right: 8px;
+    box-shadow: 0 0 8px #4CAF50;
+}
+
+.file-name {
+    font-weight: bold;
+    color: #d4d4d4;
+    font-size: 15px;
+    margin-left: 10px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.divider {
+    width: 1px;
+    height: 24px;
+    background-color: #555;
+    margin: 0 5px;
+}
+
+.lang-select {
+    padding: 6px;
+    border-radius: 4px;
+    background-color: #3c3c3c;
+    color: #d4d4d4;
+    border: 1px solid #555;
+    cursor: pointer;
+}
+
+/* Buttons */
+.btn-run {
+    padding: 8px 16px;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: opacity 0.2s;
+}
+
+.btn-run.running {
+    cursor: wait;
+    opacity: 0.7;
+}
+
+.btn-ai {
+    padding: 8px 16px;
+    background: #9c27b0;
+    color: #fff;
+    border: none;
+    cursor: pointer;
+    border-radius: 4px;
+    font-weight: bold;
+}
+
+.file-actions {
+    display: flex;
+    gap: 10px;
+    margin-left: auto;
+}
+
+.btn-upload {
+    padding: 8px 16px;
+    background: #FF9800;
+    color: #fff;
+    border: none;
+    cursor: pointer;
+    border-radius: 4px;
+    font-weight: bold;
+}
+
+.btn-download {
+    padding: 8px 16px;
+    background: #2196F3;
+    color: #fff;
+    border: none;
+    cursor: pointer;
+    border-radius: 4px;
+    font-weight: bold;
+}
+
+.hidden-input {
+    display: none;
+}
+
+/* Editor & Output */
+.monaco-wrapper {
+    flex: 1;
+    pointer-events: auto;
+}
+
+.monaco-wrapper.dragging {
+    pointer-events: none;
+}
+
+.output-console {
+    height: 20vh;
+    padding: 15px;
+    background: #000;
+    color: #00ff00;
+    margin: 0;
+    overflow-y: auto;
+    border-top: 2px solid #333;
+}
+
+/* AI Suggestion Pulse Animation */
+@keyframes pulse {
+    0% { opacity: 1; }
+    50% { opacity: 0.5; }
+    100% { opacity: 1; }
+}
+
+.ai-header-pulse {
+    color: #f38ba8;
+    animation: pulse 1.5s infinite;
+}

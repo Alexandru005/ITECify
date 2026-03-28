@@ -1,0 +1,23 @@
+.container-fundal {
+    background-image: url('../assets/main.jpg');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+
+    /* ADĂUGĂRI PENTRU DIMENSIUNE ȘI CENTRARE: */
+    min-height: 100vh; /* Ocupă 100% din înălțimea ecranului (Viewport Height) */
+    display: flex; /* Activează Flexbox */
+    justify-content: center; /* Centrează pe orizontală */
+    align-items: center; /* Centrează pe verticală */
+
+}
+
+.title-home-page{
+    font-size: 4rem;
+    color: whitesmoke;
+    text-shadow: 2px 2px 2px black;
+
+    /* Notă: z-index funcționează doar dacă elementul are o poziție setată */
+    position: relative;
+    z-index: 1;
+}

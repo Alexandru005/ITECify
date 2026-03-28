@@ -8,22 +8,6 @@
     position: relative;
 }
 
-.drag-overlay {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-color: rgba(0, 0, 0, 0.8);
-    color: #4CAF50;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    font-size: 32px;
-    font-weight: bold;
-    z-index: 1000;
-    border: 4px dashed #4CAF50;
-}
 
 /* Toolbar & Elements */
 .toolbar {
@@ -217,4 +201,83 @@
     overflow-y: auto;
     font-family: monospace;
     white-space: pre-wrap;
+}
+
+/* --- MODAL UPLOAD (FEREASTRĂ POP-UP) --- */
+.modal-overlay {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background-color: rgba(0, 0, 0, 0.7);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 2000;
+    backdrop-filter: blur(3px); /* Un efect vizual super fain */
+}
+
+.upload-modal {
+    background-color: #252526;
+    padding: 20px 30px 30px;
+    border-radius: 8px;
+    border: 1px solid #3c3c3c;
+    width: 400px;
+    text-align: center;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.modal-title {
+    font-size: 18px;
+    font-weight: bold;
+    color: white;
+    margin: 0;
+}
+
+.btn-close {
+    background: transparent;
+    color: #888;
+    border: none;
+    font-size: 20px;
+    cursor: pointer;
+    transition: color 0.2s;
+}
+
+.btn-close:hover {
+    color: #f38ba8;
+}
+
+/* Zona dedicată de Drag & Drop */
+.drop-zone {
+    border: 2px dashed #555;
+    border-radius: 8px;
+    padding: 40px 20px;
+    background-color: #1e1e1e;
+    color: #aaa;
+    transition: all 0.2s ease;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+}
+
+.drop-zone:hover {
+    border-color: #FF9800;
+    color: white;
+}
+
+.drop-zone.active {
+    border-color: #4CAF50;
+    background-color: rgba(76, 175, 80, 0.1);
+    color: #4CAF50;
+}
+
+.drop-icon {
+    font-size: 40px;
 }

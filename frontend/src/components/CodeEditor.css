@@ -1,129 +1,170 @@
-/* CodeEditor.css */
+/* CodeEditor.css — dark elegant / minimal */
 
+/* ─── Layout principal ─────────────────────────────────── */
 .editor-container {
     display: flex;
     flex-direction: column;
     height: 100vh;
-    background-color: #1e1e1e;
+    background-color: #141414;
     position: relative;
+    font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
 }
 
-
-/* Toolbar & Elements */
+/* ─── Toolbar ───────────────────────────────────────────── */
 .toolbar {
     display: flex;
     align-items: center;
-    padding: 10px 15px;
-    gap: 15px;
-    background-color: #252526;
-    color: white;
-    border-bottom: 1px solid #3c3c3c;
-    flex-wrap: wrap;
+    padding: 0 20px;
+    height: 52px;
+    gap: 12px;
+    background-color: #1a1a1a;
+    border-bottom: 1px solid #2a2a2a;
+    flex-wrap: nowrap;
+    overflow-x: auto;
 }
 
-.users-indicator {
+.online-badge {
     display: flex;
     align-items: center;
-    background: #333;
-    padding: 6px 12px;
+    gap: 7px;
+    background: #222;
+    border: 1px solid #2e2e2e;
+    padding: 5px 11px;
     border-radius: 20px;
-    font-size: 14px;
+    font-size: 12px;
+    color: #888;
+    white-space: nowrap;
+    letter-spacing: 0.02em;
 }
 
 .status-dot {
-    display: inline-block;
-    width: 8px;
-    height: 8px;
-    background-color: #4CAF50;
+    width: 6px;
+    height: 6px;
+    background-color: #4ade80;
     border-radius: 50%;
-    margin-right: 8px;
-    box-shadow: 0 0 8px #4CAF50;
+    flex-shrink: 0;
 }
 
 .file-name {
-    font-weight: bold;
-    color: #d4d4d4;
-    font-size: 15px;
-    margin-left: 10px;
+    font-size: 13px;
+    color: #666;
+    letter-spacing: 0.01em;
+    white-space: nowrap;
     display: flex;
     align-items: center;
-    gap: 5px;
+    gap: 6px;
 }
 
 .divider {
     width: 1px;
-    height: 24px;
-    background-color: #555;
-    margin: 0 5px;
+    height: 20px;
+    background-color: #2a2a2a;
+    flex-shrink: 0;
+    margin: 0 4px;
 }
 
+/* ─── Select limbaj ─────────────────────────────────────── */
 .lang-select {
-    padding: 6px;
-    border-radius: 4px;
-    background-color: #3c3c3c;
-    color: #d4d4d4;
-    border: 1px solid #555;
+    padding: 5px 10px;
+    border-radius: 6px;
+    background-color: #222;
+    color: #bbb;
+    border: 1px solid #2e2e2e;
     cursor: pointer;
+    font-size: 12px;
+    outline: none;
+    transition: border-color 0.15s;
+    letter-spacing: 0.02em;
 }
 
-/* Buttons */
+.lang-select:hover,
+.lang-select:focus {
+    border-color: #444;
+    color: #ddd;
+}
+
+/* ─── Butoane — bază ────────────────────────────────────── */
+.btn {
+    padding: 5px 14px;
+    height: 30px;
+    border: 1px solid #2e2e2e;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.03em;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background-color 0.15s, border-color 0.15s, color 0.15s;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+/* Run */
 .btn-run {
-    padding: 8px 16px;
-    background-color: #4CAF50;
-    color: white;
-    border: none;
-    border-radius: 4px;
-    font-weight: bold;
-    cursor: pointer;
-    transition: opacity 0.2s;
+    background-color: #1f3d2b;
+    color: #4ade80;
+    border-color: #2a5038;
 }
 
-.btn-run.running {
-    cursor: wait;
-    opacity: 0.7;
+.btn-run:not(:disabled):hover {
+    background-color: #254834;
+    border-color: #356644;
 }
 
+/* AI */
 .btn-ai {
-    padding: 8px 16px;
-    background: #9c27b0;
-    color: #fff;
-    border: none;
-    cursor: pointer;
-    border-radius: 4px;
-    font-weight: bold;
+    background-color: #2a1f3d;
+    color: #a78bfa;
+    border-color: #3a2a55;
 }
 
-.file-actions {
-    display: flex;
-    gap: 10px;
-    margin-left: auto;
+.btn-ai:hover {
+    background-color: #32255c;
+    border-color: #4a3570;
 }
 
+/* Upload */
 .btn-upload {
-    padding: 8px 16px;
-    background: #FF9800;
-    color: #fff;
-    border: none;
-    cursor: pointer;
-    border-radius: 4px;
-    font-weight: bold;
+    background-color: #222;
+    color: #999;
+    border-color: #2e2e2e;
 }
 
+.btn-upload:hover {
+    background-color: #2a2a2a;
+    color: #ccc;
+    border-color: #444;
+}
+
+/* Download */
 .btn-download {
-    padding: 8px 16px;
-    background: #2196F3;
-    color: #fff;
-    border: none;
-    cursor: pointer;
-    border-radius: 4px;
-    font-weight: bold;
+    background-color: #1a2a3d;
+    color: #60a5fa;
+    border-color: #1e3550;
+}
+
+.btn-download:hover {
+    background-color: #1e3250;
+    border-color: #2a4a70;
+}
+
+.action-group {
+    display: flex;
+    gap: 8px;
+    margin-left: auto;
 }
 
 .hidden-input {
     display: none;
 }
 
-/* Editor & Output */
+/* ─── Monaco Editor wrapper ─────────────────────────────── */
 .monaco-wrapper {
     flex: 1;
     pointer-events: auto;
@@ -133,34 +174,12 @@
     pointer-events: none;
 }
 
-.output-console {
-    height: 20vh;
-    padding: 15px;
-    background: #000;
-    color: #00ff00;
-    margin: 0;
-    overflow-y: auto;
-    border-top: 2px solid #333;
-}
-
-/* AI Suggestion Pulse Animation */
-@keyframes pulse {
-    0% { opacity: 1; }
-    50% { opacity: 0.5; }
-    100% { opacity: 1; }
-}
-
-.ai-header-pulse {
-    color: #f38ba8;
-    animation: pulse 1.5s infinite;
-}
-
-/* CodeEditor.css */
-
+/* ─── Zone input / output ───────────────────────────────── */
 .io-container {
     display: flex;
-    height: 25vh;
-    border-top: 2px solid #333;
+    height: 22vh;
+    min-height: 130px;
+    border-top: 1px solid #2a2a2a;
 }
 
 .io-box {
@@ -170,59 +189,71 @@
 }
 
 .input-box {
-    border-right: 1px solid #333;
+    border-right: 1px solid #2a2a2a;
 }
 
 .io-header {
-    padding: 5px 10px;
-    background: #252526;
-    color: #ccc;
-    font-size: 13px;
-    font-weight: bold;
+    padding: 6px 14px;
+    background: #1a1a1a;
+    color: #555;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    border-bottom: 1px solid #222;
 }
 
 .io-textarea {
     flex: 1;
-    padding: 10px;
-    background: #1e1e1e;
-    color: #d4d4d4;
+    padding: 12px 14px;
+    background: #141414;
+    color: #c8c8c8;
     border: none;
     resize: none;
     outline: none;
-    font-family: monospace;
+    font-family: 'JetBrains Mono', 'Fira Code', monospace;
+    font-size: 13px;
+    line-height: 1.6;
+    caret-color: #a78bfa;
+}
+
+.io-textarea::placeholder {
+    color: #3a3a3a;
 }
 
 .io-pre {
     flex: 1;
-    padding: 10px;
-    background: #000;
-    color: #00ff00;
+    padding: 12px 14px;
+    background: #0f0f0f;
+    color: #4ade80;
     margin: 0;
     overflow-y: auto;
-    font-family: monospace;
+    font-family: 'JetBrains Mono', 'Fira Code', monospace;
+    font-size: 13px;
+    line-height: 1.6;
     white-space: pre-wrap;
 }
 
-/* --- MODAL UPLOAD (FEREASTRĂ POP-UP) --- */
+/* ─── Modal upload ──────────────────────────────────────── */
 .modal-overlay {
     position: fixed;
     top: 0; left: 0; right: 0; bottom: 0;
-    background-color: rgba(0, 0, 0, 0.7);
+    background-color: rgba(0, 0, 0, 0.75);
     display: flex;
     justify-content: center;
     align-items: center;
     z-index: 2000;
-    backdrop-filter: blur(3px); /* Un efect vizual super fain */
+    backdrop-filter: blur(4px);
 }
 
 .upload-modal {
-    background-color: #252526;
-    padding: 20px 30px 30px;
-    border-radius: 8px;
-    border: 1px solid #3c3c3c;
-    width: 400px;
+    background-color: #1a1a1a;
+    padding: 24px 28px 28px;
+    border-radius: 10px;
+    border: 1px solid #2a2a2a;
+    width: 380px;
     text-align: center;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
 }
 
 .modal-header {
@@ -233,51 +264,122 @@
 }
 
 .modal-title {
-    font-size: 18px;
-    font-weight: bold;
-    color: white;
+    font-size: 15px;
+    font-weight: 600;
+    color: #ddd;
     margin: 0;
+    letter-spacing: 0.02em;
 }
 
 .btn-close {
     background: transparent;
-    color: #888;
+    color: #555;
     border: none;
-    font-size: 20px;
+    font-size: 16px;
     cursor: pointer;
-    transition: color 0.2s;
+    transition: color 0.15s;
+    padding: 4px;
+    line-height: 1;
 }
 
 .btn-close:hover {
-    color: #f38ba8;
+    color: #aaa;
 }
 
-/* Zona dedicată de Drag & Drop */
+/* ─── Drop zone ─────────────────────────────────────────── */
 .drop-zone {
-    border: 2px dashed #555;
+    border: 1px dashed #333;
     border-radius: 8px;
-    padding: 40px 20px;
-    background-color: #1e1e1e;
-    color: #aaa;
-    transition: all 0.2s ease;
+    padding: 36px 20px;
+    background-color: #111;
+    color: #555;
+    transition: border-color 0.2s, background-color 0.2s, color 0.2s;
     cursor: pointer;
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: 10px;
+    font-size: 13px;
+    line-height: 1.6;
 }
 
 .drop-zone:hover {
-    border-color: #FF9800;
-    color: white;
+    border-color: #555;
+    color: #aaa;
 }
 
 .drop-zone.active {
-    border-color: #4CAF50;
-    background-color: rgba(76, 175, 80, 0.1);
-    color: #4CAF50;
+    border-color: #4ade80;
+    background-color: rgba(74, 222, 128, 0.05);
+    color: #4ade80;
 }
 
 .drop-icon {
-    font-size: 40px;
+    font-size: 28px;
+    opacity: 0.7;
+}
+
+/* ─── Animații AI ───────────────────────────────────────── */
+@keyframes pulse {
+    0%   { opacity: 1; }
+    50%  { opacity: 0.4; }
+    100% { opacity: 1; }
+}
+
+.ai-suggestion-block {
+    padding: 8px 12px;
+    background: #1e1a2e;
+    border-left: 2px solid #7c3aed;
+    font-size: 13px;
+}
+
+.ai-header {
+    color: #a78bfa;
+    font-weight: 600;
+    font-size: 12px;
+    letter-spacing: 0.05em;
+    margin-bottom: 6px;
+}
+
+.ai-code {
+    color: #ddd;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    margin: 0 0 8px;
+    line-height: 1.5;
+}
+
+.ai-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.ai-btn {
+    padding: 3px 12px;
+    border-radius: 4px;
+    border: 1px solid #333;
+    background: #222;
+    color: #aaa;
+    font-size: 11px;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+.ai-btn.accept {
+    border-color: #2a5038;
+    color: #4ade80;
+    background: #1a2e20;
+}
+
+.ai-btn.accept:hover { background: #1f3828; }
+
+.ai-btn.reject:hover { background: #2a2020; color: #f87171; border-color: #5a2a2a; }
+
+/* Highlight linii acceptate AI */
+.ai-highlight { background: rgba(124, 58, 237, 0.12) !important; }
+.ai-highlight-margin { background: rgba(124, 58, 237, 0.3) !important; }
+
+.ai-header-pulse {
+    color: #f87171;
+    animation: pulse 1.5s infinite;
 }

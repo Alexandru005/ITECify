@@ -10,6 +10,7 @@ export default function CodeEditor() {
     const [code, setCode] = useState('# scrie cod aici\n');
     const [output, setOutput] = useState('');
     const [isDragging, setIsDragging] = useState(false);
+    const [stdin, setStdin] = useState(''); // Starea pentru datele de intrare
 
     const [connectedUsers, setConnectedUsers] = useState(1);
     const [fileName, setFileName] = useState('fisier_nou.txt');
@@ -75,7 +76,7 @@ export default function CodeEditor() {
             const res = await fetch('http://localhost:3001/run', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ code, language })
+                body: JSON.stringify({ code, language, stdin })
             });
 
             if (!res.ok) throw new Error(`Eroare de la server (Status: ${res.status})`);
@@ -195,19 +196,31 @@ export default function CodeEditor() {
     };
 
     const handleDownload = () => {
-        const extMap = { 'python': 'py', 'javascript': 'js', 'cpp': 'cpp', 'java': 'java' };
-        const fallbackExt = extMap[language] || 'txt';
-        const finalFileName = fileName.includes('.') ? fileName : `${fileName}.${fallbackExt}`;
+        // 1. Găsim extensia corectă pentru limbajul selectat acum
+        const extMap = { 'python': 'py', 'javascript': 'js', 'cpp': 'cpp', 'c': 'c', 'java': 'java' };
+        const currentExt = extMap[language] || 'txt';
 
+        // 2. Extragem numele de bază al fișierului (fără extensia veche)
+        let baseName = fileName;
+        if (baseName.includes('.')) {
+            // Tăiem tot de la ultimul punct încolo (ex: "script.vechi.py" devine "script.vechi")
+            baseName = baseName.substring(0, baseName.lastIndexOf('.'));
+        }
+
+        // 3. Lipim numele de bază cu extensia nouă
+        const finalFileName = `${baseName}.${currentExt}`;
+
+        // 4. Generăm și descărcăm fișierul
         const blob = new Blob([code], { type: 'text/plain' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
         a.download = finalFileName;
         a.click();
+
+        // Curățăm memoria
         URL.revokeObjectURL(url);
     };
-
     return (
         <div
             className="editor-container"
@@ -241,6 +254,7 @@ export default function CodeEditor() {
                     <option value="python">Python</option>
                     <option value="javascript">JavaScript (Node.js)</option>
                     <option value="cpp">C++</option>
+                    <option value="c">C</option>
                     <option value="java">Java</option>
                 </select>
 
@@ -284,10 +298,33 @@ export default function CodeEditor() {
                     theme="vs-dark"
                 />
             </div>
+            {/* Secțiunea de jos: Input și Output */}
+            <div className="io-container">
 
-            <pre className="output-console">
-                {output || '> Aștept cod pentru execuție...'}
-            </pre>
+                {/* Cutia de INPUT */}
+                <div className="io-box input-box">
+                    <div className="io-header">
+                        📥 Date de intrare (Input)
+                    </div>
+                    <textarea
+                        value={stdin}
+                        onChange={(e) => setStdin(e.target.value)}
+                        placeholder="Dacă programul cere date (ex: cin >> x), scrie-le aici..."
+                        className="io-textarea"
+                    />
+                </div>
+
+                {/* Cutia de OUTPUT */}
+                <div className="io-box">
+                    <div className="io-header">
+                        📤 Rezultat (Output)
+                    </div>
+                    <pre className="io-pre">
+                        {output || '> Aștept cod pentru execuție...'}
+                    </pre>
+                </div>
+
+            </div>
         </div>
     );
 }

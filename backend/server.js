@@ -19,27 +19,26 @@ app.post('/ai', async (req, res) => {
     const { codeBefore, codeAfter, language } = req.body;
 
     // Prompt inteligent care folosește contextul de sus și de jos
-    const prompt = `
-Ești un asistent de programare expert. Utilizatorul scrie cod în ${language}.
-Trebuie să completezi codul care lipsește exact la poziția cursorului.
+    const prompt = `Ești un asistent de programare expert. Utilizatorul scrie cod în ${language}.
+    Trebuie să completezi codul care lipsește exact la poziția cursorului.
+    
+    --- CODUL DE DEASUPRA CURSORULUI ---
+    ${codeBefore}
 
---- CODUL DE DEASUPRA CURSORULUI ---
-${codeBefore}
+    --- CODUL DE SUB CURSOR ---
+    ${codeAfter}
 
---- CODUL DE SUB CURSOR ---
-${codeAfter}
-
-Generează DOAR codul care trebuie inserat la mijloc.
-REGULĂ STRICTĂ: Răspunde STRICT doar cu codul necesar. NU folosi formatare markdown (ex: \`\`\`python). NU scrie texte introductive sau explicații.
-    `;
+    Generează DOAR codul care trebuie inserat la mijloc.
+    REGULĂ STRICTĂ: Răspunde STRICT doar cu codul necesar. NU folosi formatare markdown (ex: \`\`\`python).
+    NU scrie texte introductive sau explicații.`;
 
     try {
-        console.log(`Se generează sugestia AI (context inteligent FIM)...`);
+        console.log(`Se generează sugestia AI...`);
 
         const response = await fetch('http://127.0.0.1:11434/api/generate', {            method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                model: 'qwen2.5-coder:1.5b', // Sau modelul tău
+                model: 'qwen2.5-coder:7b', // Sau modelul tău
                 prompt: prompt,
                 stream: false
             })

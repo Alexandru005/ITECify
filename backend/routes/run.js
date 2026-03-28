@@ -31,6 +31,11 @@ const languageConfig = {
         image: 'eclipse-temurin:17-alpine', // AICI AM MODIFICAT
         fileName: 'Main.java',
         command: 'sh -c "javac Main.java && java Main"'
+    },
+    c: {
+        image: 'gcc:latest',
+        fileName: 'script.c',
+        command: 'gcc -Wall -o exe script.c && ./exe'
     }
 };
 

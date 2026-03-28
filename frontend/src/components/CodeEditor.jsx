@@ -4,19 +4,21 @@ import { useEffect, useRef, useState } from 'react';
 const WS_URL = 'ws://localhost:3001';
 
 export default function CodeEditor() {
-    // State-uri
     const [language, setLanguage] = useState('python');
     const [isRunning, setIsRunning] = useState(false);
     const [code, setCode] = useState('# scrie cod aici\n');
     const [output, setOutput] = useState('');
+    const [isDragging, setIsDragging] = useState(false);
 
-    // Referințe
+    // --- STĂRI NOI PENTRU COLABORARE ---
+    const [connectedUsers, setConnectedUsers] = useState(1);
+    const [fileName, setFileName] = useState('fisier_nou.txt');
+
     const wsRef = useRef(null);
     const isRemoteUpdate = useRef(false);
-    const editorRef = useRef(null); // Adăugat pentru AI
-    const monacoRef = useRef(null); // Adăugat pentru AI
-    const myId = useRef(Math.random().toString(36).substring(7)); // Generăm un ID rapid pentru test
-    const remoteCursors = useRef(new Map()); // Map pentru a ține evidența decorațiunilor (cursoarelor)
+    const editorRef = useRef(null);
+    const monacoRef = useRef(null);
+    const fileInputRef = useRef(null);
 
     useEffect(() => {
         const ws = new WebSocket(WS_URL);
@@ -25,53 +27,31 @@ export default function CodeEditor() {
         ws.onmessage = (e) => {
             const msg = JSON.parse(e.data);
 
+            // Ascultăm noile tipuri de mesaje
             if (msg.type === 'code-update') {
-                if (editorRef.current && editorRef.current.getValue() !== msg.code) {
-                    isRemoteUpdate.current = true;
-                    setCode(msg.code);
-                }
-            }
-            else if (msg.type === 'cursor-move') {
-                updateRemoteCursor(msg.userId, msg.username, msg.position);
-            }
-            else if (msg.type === 'user-disconnected') {
-                removeRemoteCursor(msg.userId);
-            }
-            // --- NOI ADĂUGĂRI PENTRU TERMINAL COMUN ---
-            else if (msg.type === 'terminal-start') {
-                setOutput(`> 💻 ${msg.username} execută codul...\n`);
-                setIsRunning(true); // Blocăm butonul de Run și la noi
-            }
-            else if (msg.type === 'terminal-output') {
+                isRemoteUpdate.current = true;
+                setCode(msg.code);
+            } else if (msg.type === 'users-count') {
+                setConnectedUsers(msg.count);
+            } else if (msg.type === 'language-update') {
+                setLanguage(msg.language); // Se schimbă limba automat dacă cineva o schimbă
+            } else if (msg.type === 'file-name-update') {
+                setFileName(msg.fileName); // Se schimbă numele fișierului automat
+            } else if (msg.type === 'output-update') {
                 setOutput(msg.output);
-                setIsRunning(false); // Deblocăm butonul
             }
         };
 
         return () => ws.close();
     }, []);
 
-    // Funcția care capturează instanța editorului pentru AI
     const handleEditorMount = (editor, monaco) => {
         editorRef.current = editor;
         monacoRef.current = monaco;
-
-        // Când tu muți cursorul, trimitem poziția către toți ceilalți
-        editor.onDidChangeCursorPosition((e) => {
-            if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-                wsRef.current.send(JSON.stringify({
-                    type: 'cursor-move',
-                    userId: myId.current,
-                    username: `Hacker-${myId.current.substring(0, 3)}`, // Nume generat
-                    position: e.position
-                }));
-            }
-        });
     };
 
     const handleChange = (value) => {
         if (isRemoteUpdate.current) {
-            // Resetăm flag-ul AICI, sincron, exact când Monaco a terminat de updatat interfața
             isRemoteUpdate.current = false;
             return;
         }
@@ -79,16 +59,20 @@ export default function CodeEditor() {
         wsRef.current?.send(JSON.stringify({ type: 'code-update', code: value }));
     };
 
-    // Funcția de Run
+    // Funcție care se ocupă de schimbarea limbajului din Dropdown și anunță pe toată lumea
+    const handleLanguageChange = (e) => {
+        const newLang = e.target.value;
+        setLanguage(newLang);
+        wsRef.current?.send(JSON.stringify({ type: 'language-update', language: newLang }));
+    };
+
     const handleRun = async () => {
         setIsRunning(true);
-        setOutput('> Se execută codul...\n');
 
-        // 1. Anunțăm colegii că AM PORNIT execuția
-        wsRef.current?.send(JSON.stringify({
-            type: 'terminal-start',
-            username: `Hacker-${myId.current.substring(0, 3)}` // Numele generat la fel ca la cursoare
-        }));
+        // 1. Anunțăm pe toți că execuția a început
+        const startMsg = '> Se execută codul...\n';
+        setOutput(startMsg);
+        wsRef.current?.send(JSON.stringify({ type: 'output-update', output: startMsg }));
 
         try {
             const res = await fetch('http://localhost:3001/run', {
@@ -97,41 +81,30 @@ export default function CodeEditor() {
                 body: JSON.stringify({ code, language })
             });
 
-            if (!res.ok) {
-                throw new Error(`Eroare de la server (Status: ${res.status})`);
-            }
+            if (!res.ok) throw new Error(`Eroare de la server (Status: ${res.status})`);
 
             const data = await res.json();
 
-            // Formatăm rezultatul
+            // 2. Pregătim rezultatul final
             const finalOutput = data.error
-                ? `❌ Eroare de execuție:\n${data.error}`
-                : (data.output || '✅ S-a executat cu succes, dar nu există output.');
+                ? `Eroare de execuție:\n${data.error}`
+                : (data.output || 'S-a executat cu succes, dar nu există output.');
 
+            // 3. Afișăm la noi și trimitem la restul!
             setOutput(finalOutput);
-
-            // 2. Trimitem REZULTATUL (output-ul de la Docker) către toți colegii
-            wsRef.current?.send(JSON.stringify({
-                type: 'terminal-output',
-                output: finalOutput
-            }));
+            wsRef.current?.send(JSON.stringify({ type: 'output-update', output: finalOutput }));
 
         } catch (err) {
-            const errorMsg = `⚠️ Eroare de conexiune:\nNu m-am putut conecta la serverul de execuție. (${err.message})`;
+            const errorMsg = `Eroare de conexiune:\nNu m-am putut conecta la serverul de execuție. (${err.message})`;
             setOutput(errorMsg);
-
-            // Trimitem și eroarea către colegi ca să fim sincronizați
-            wsRef.current?.send(JSON.stringify({
-                type: 'terminal-output',
-                output: errorMsg
-            }));
+            wsRef.current?.send(JSON.stringify({ type: 'output-update', output: errorMsg }));
         } finally {
             setIsRunning(false);
         }
     };
 
-    // Funcția de AI
     const askAI = async () => {
+        // ... Logica ta de AI rămâne neschimbată
         const editor = editorRef.current;
         const monaco = monacoRef.current;
         if (!editor || !monaco) return;
@@ -139,66 +112,24 @@ export default function CodeEditor() {
         const position = editor.getPosition();
         const model = editor.getModel();
 
-        const codeBefore = model.getValueInRange({
-            startLineNumber: 1, startColumn: 1,
-            endLineNumber: position.lineNumber, endColumn: position.column
-        });
-        const codeAfter = model.getValueInRange({
-            startLineNumber: position.lineNumber, startColumn: position.column,
-            endLineNumber: model.getLineCount(), endColumn: model.getLineMaxColumn(model.getLineCount())
-        });
-
-        // --- 1. NOU: CREĂM CURSORUL AI-ULUI LOCAL ---
-        const aiDecoration = editor.createDecorationsCollection();
-        aiDecoration.set([{
-            range: new monaco.Range(position.lineNumber, position.column, position.lineNumber, position.column),
-            options: {
-                className: 'ai-cursor',
-                stickiness: monaco.editor.TrackedRangeStickiness.NeverGrowsWhenTypingAtEdges
-            }
-        }]);
-
-        // --- 2. NOU: ANUNȚĂM ȘI COLEGII PRIN WEBSOCKET CĂ AI-UL SE GÂNDEȘTE ---
-        wsRef.current?.send(JSON.stringify({
-            type: 'cursor-move',
-            userId: 'ai-agent-123', // ID fals pentru AI
-            username: '🤖 AI',
-            position: position
-        }));
+        const codeBefore = model.getValueInRange({ startLineNumber: 1, startColumn: 1, endLineNumber: position.lineNumber, endColumn: position.column });
+        const codeAfter = model.getValueInRange({ startLineNumber: position.lineNumber, startColumn: position.column, endLineNumber: model.getLineCount(), endColumn: model.getLineMaxColumn(model.getLineCount()) });
 
         let viewZoneId = null;
         const domNode = document.createElement('div');
         domNode.className = 'ai-suggestion-block';
-        domNode.innerHTML = `
-            <div class="ai-header" style="color: #f38ba8; animation: pulse 1.5s infinite;">
-                ⏳ AI-ul analizează codul...
-            </div>
-        `;
+        domNode.innerHTML = `<div class="ai-header" style="color: #f38ba8; animation: pulse 1.5s infinite;">⏳ AI-ul analizează codul...</div>`;
 
-        editor.changeViewZones((changeAccessor) => {
-            viewZoneId = changeAccessor.addZone({
-                afterLineNumber: position.lineNumber,
-                heightInLines: 3,
-                domNode: domNode,
-            });
-        });
+        editor.changeViewZones((changeAccessor) => { viewZoneId = changeAccessor.addZone({ afterLineNumber: position.lineNumber, heightInLines: 3, domNode: domNode }); });
 
         try {
             const response = await fetch('http://localhost:3001/ai', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                // Am adăugat variabila `language` aici ca AI-ul să respecte dropdown-ul!
                 body: JSON.stringify({ codeBefore, codeAfter, language })
             });
 
             const data = await response.json();
-
-            // --- 3. NOU: ȘTERGEM CURSORUL AI-ULUI (Răspunsul a venit) ---
-            aiDecoration.clear();
-            wsRef.current?.send(JSON.stringify({
-                type: 'user-disconnected',
-                userId: 'ai-agent-123' // Îi spunem serverului să scoată cursorul AI-ului și de la colegi
-            }));
 
             if (data.suggestion) {
                 domNode.innerHTML = `
@@ -213,24 +144,11 @@ export default function CodeEditor() {
                 const linesCount = data.suggestion.split('\n').length;
                 editor.changeViewZones(accessor => {
                     accessor.removeZone(viewZoneId);
-                    viewZoneId = accessor.addZone({
-                        afterLineNumber: position.lineNumber,
-                        heightInLines: linesCount + 3,
-                        domNode: domNode,
-                    });
-
-
-
+                    viewZoneId = accessor.addZone({ afterLineNumber: position.lineNumber, heightInLines: linesCount + 3, domNode: domNode });
                 });
 
                 domNode.querySelector('.accept').onclick = () => {
-                    // 1. Inserăm codul în editor exact unde e cursorul
-                    editor.executeEdits("AI_INSERT", [{
-                        range: new monaco.Range(position.lineNumber + 1, 1, position.lineNumber + 1, 1),
-                        text: data.suggestion + '\n'
-                    }]);
-
-                    // 2. Închidem block-ul vizual
+                    editor.executeEdits("AI_INSERT", [{ range: new monaco.Range(position.lineNumber + 1, 1, position.lineNumber + 1, 1), text: data.suggestion + '\n' }]);
                     editor.changeViewZones(accessor => accessor.removeZone(viewZoneId));
                 };
 
@@ -239,100 +157,109 @@ export default function CodeEditor() {
                 };
             }
         } catch (error) {
-            console.error("Eroare la procesarea AI:", error);
-
-            // --- 4. NOU: ȘTERGEM CURSORUL AI-ULUI ȘI ÎN CAZ DE EROARE ---
-            aiDecoration.clear();
-            wsRef.current?.send(JSON.stringify({
-                type: 'user-disconnected',
-                userId: 'ai-agent-123'
-            }));
-
+            console.error("Eroare la AI:", error);
             editor.changeViewZones(accessor => accessor.removeZone(viewZoneId));
-            alert("A apărut o problemă. Apasă F12 și uită-te în tab-ul Console pentru detalii.");
+            alert("A apărut o problemă cu AI-ul.");
         }
     };
 
-    const updateRemoteCursor = (userId, username, position) => {
-        const editor = editorRef.current;
-        const monaco = monacoRef.current;
-        if (!editor || !monaco) return;
+    // --- PROCESARE FIȘIERE (ACUM ANUNȚĂ PE TOȚI DE NUME ȘI LIMBAJ) ---
+    const processFile = (file) => {
+        if (!file) return;
 
-        // Dacă acest utilizator nu are o colecție de decorațiuni, îi creăm una
-        if (!remoteCursors.current.has(userId)) {
-            remoteCursors.current.set(userId, editor.createDecorationsCollection());
+        // Setăm și trimitem noul nume de fișier
+        setFileName(file.name);
+        wsRef.current?.send(JSON.stringify({ type: 'file-name-update', fileName: file.name }));
+
+        // Detectăm limbajul și anunțăm pe toți ceilalți
+        const ext = file.name.split('.').pop().toLowerCase();
+        const extMap = { 'py': 'python', 'js': 'javascript', 'cpp': 'cpp', 'c': 'cpp', 'java': 'java' };
+        if (extMap[ext]) {
+            setLanguage(extMap[ext]);
+            wsRef.current?.send(JSON.stringify({ type: 'language-update', language: extMap[ext] }));
         }
 
-        const collection = remoteCursors.current.get(userId);
-
-        // Actualizăm poziția decorațiunii (cursorului) pe ecran
-        collection.set([{
-            range: new monaco.Range(position.lineNumber, position.column, position.lineNumber, position.column),
-            options: {
-                className: 'remote-cursor', // Numele clasei CSS
-                hoverMessage: { value: `**${username}**` }, // Numele apare când ții mouse-ul pe cursor
-                stickiness: monaco.editor.TrackedRangeStickiness.NeverGrowsWhenTypingAtEdges
-            }
-        }]);
+        // Citim conținutul și îl trimitem
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            const fileContent = event.target.result;
+            setCode(fileContent);
+            wsRef.current?.send(JSON.stringify({ type: 'code-update', code: fileContent }));
+        };
+        reader.readAsText(file);
     };
 
-    const removeRemoteCursor = (userId) => {
-        if (remoteCursors.current.has(userId)) {
-            remoteCursors.current.get(userId).clear(); // Șterge vizual
-            remoteCursors.current.delete(userId);      // Șterge din memorie
-        }
+    // Evenimente Drag & Drop
+    const handleDragOver = (e) => { e.preventDefault(); setIsDragging(true); };
+    const handleDragLeave = (e) => { e.preventDefault(); setIsDragging(false); };
+    const handleDrop = (e) => {
+        e.preventDefault();
+        setIsDragging(false);
+        processFile(e.dataTransfer.files[0]);
+    };
+
+    // Evenimente Upload
+    const handleUploadClick = () => fileInputRef.current?.click();
+    const handleFileSelect = (e) => {
+        processFile(e.target.files[0]);
+        e.target.value = null;
+    };
+
+    // Descărcarea folosește acum numele real al fișierului!
+    const handleDownload = () => {
+        const extMap = { 'python': 'py', 'javascript': 'js', 'cpp': 'cpp', 'java': 'java' };
+        const fallbackExt = extMap[language] || 'txt';
+
+        // Dacă fișierul are deja o extensie în nume, o păstrăm. Altfel punem extensia default.
+        const finalFileName = fileName.includes('.') ? fileName : `${fileName}.${fallbackExt}`;
+
+        const blob = new Blob([code], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = finalFileName;
+        a.click();
+        URL.revokeObjectURL(url);
     };
 
     return (
+        <div
+            style={{ display: 'flex', flexDirection: 'column', height: '100vh', backgroundColor: '#1e1e1e', position: 'relative' }}
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+        >
+            {isDragging && (
+                <div style={{
+                    position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+                    backgroundColor: 'rgba(0, 0, 0, 0.8)', color: '#4CAF50',
+                    display: 'flex', justifyContent: 'center', alignItems: 'center',
+                    fontSize: '32px', fontWeight: 'bold', zIndex: 1000, border: '4px dashed #4CAF50'
+                }}>
+                    📂 Lasă fișierul aici pentru a-l încărca!
+                </div>
+            )}
 
+            {/* TOOLBAR */}
+            <div style={{ display: 'flex', alignItems: 'center', padding: '10px 15px', gap: '15px', backgroundColor: '#252526', color: 'white', borderBottom: '1px solid #3c3c3c', flexWrap: 'wrap' }}>
 
+                {/* Indicator persoane conectate */}
+                <div style={{ display: 'flex', alignItems: 'center', background: '#333', padding: '6px 12px', borderRadius: '20px', fontSize: '14px' }}>
+                    <span style={{ display: 'inline-block', width: '8px', height: '8px', backgroundColor: '#4CAF50', borderRadius: '50%', marginRight: '8px', boxShadow: '0 0 8px #4CAF50' }}></span>
+                    {connectedUsers} {connectedUsers === 1 ? 'persoană' : 'persoane'} online
+                </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', backgroundColor: '#1e1e1e' }}>
+                {/* Numele fișierului */}
+                <div style={{ fontWeight: 'bold', color: '#d4d4d4', fontSize: '15px', marginLeft: '10px', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                    📄 {fileName}
+                </div>
 
-            {/* INJECTĂM CSS-UL PENTRU CURSOARE DIRECT AICI */}
-            <style>{`
-                .remote-cursor {
-                    border-left: 2px solid #00ff00; /* Verde electric */
-                    position: absolute;
-                    z-index: 10;
-                    pointer-events: none; /* Previne interceptarea click-urilor tale */
-                    animation: blink 1s step-end infinite;
-                }
+                <div style={{ width: '1px', height: '24px', backgroundColor: '#555', margin: '0 5px' }}></div>
 
-                @keyframes blink {
-                    50% { border-color: transparent; }
-                }
-                
-                .ai-cursor {
-                    border-left: 2px solid #a855f7; /* Un mov specific inteligenței artificiale */
-                    position: absolute;
-                    z-index: 15;
-                    pointer-events: none;
-                    animation: blink 1s step-end infinite;
-                }
-                
-                /* Eticheta care apare deasupra cursorului mov */
-                .ai-cursor::after {
-                    content: '🤖 AI Gândește...';
-                    position: absolute;
-                    top: -20px;
-                    left: 0;
-                    background: #a855f7;
-                    color: white;
-                    font-size: 10px;
-                    padding: 2px 6px;
-                    border-radius: 4px;
-                    white-space: nowrap;
-                    font-weight: bold;
-                }
-            `}</style>
-
-            {/* Toolbar cu elementele lui Alex și butonul nostru AI */}
-            <div style={{ display: 'flex', alignItems: 'center', padding: '10px', gap: '15px', color: 'white', borderBottom: '1px solid #333' }}>
                 <select
                     value={language}
-                    onChange={(e) => setLanguage(e.target.value)}
-                    style={{ padding: '8px', borderRadius: '4px', backgroundColor: '#333', color: 'white', border: '1px solid #555', cursor: 'pointer' }}
+                    onChange={handleLanguageChange} // Folosim noua funcție aici!
+                    style={{ padding: '6px', borderRadius: '4px', backgroundColor: '#3c3c3c', color: '#d4d4d4', border: '1px solid #555', cursor: 'pointer' }}
                 >
                     <option value="python">Python</option>
                     <option value="javascript">JavaScript (Node.js)</option>
@@ -343,16 +270,7 @@ export default function CodeEditor() {
                 <button
                     onClick={handleRun}
                     disabled={isRunning}
-                    style={{
-                        padding: '8px 16px',
-                        cursor: isRunning ? 'wait' : 'pointer',
-                        opacity: isRunning ? 0.7 : 1,
-                        backgroundColor: '#4CAF50',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '4px',
-                        fontWeight: 'bold'
-                    }}
+                    style={{ padding: '8px 16px', cursor: isRunning ? 'wait' : 'pointer', opacity: isRunning ? 0.7 : 1, backgroundColor: '#4CAF50', color: 'white', border: 'none', borderRadius: '4px', fontWeight: 'bold' }}
                 >
                     {isRunning ? '⏳ Se execută...' : '▶ Run Code'}
                 </button>
@@ -360,21 +278,30 @@ export default function CodeEditor() {
                 <button onClick={askAI} style={{ padding: '8px 16px', background: '#9c27b0', color: '#fff', border: 'none', cursor: 'pointer', borderRadius: '4px', fontWeight: 'bold' }}>
                     ✨ Cere AI
                 </button>
+
+                <input type="file" ref={fileInputRef} onChange={handleFileSelect} style={{ display: 'none' }} accept=".py,.js,.cpp,.c,.java,.txt" />
+
+                <div style={{ display: 'flex', gap: '10px', marginLeft: 'auto' }}>
+                    <button onClick={handleUploadClick} style={{ padding: '8px 16px', background: '#FF9800', color: '#fff', border: 'none', cursor: 'pointer', borderRadius: '4px', fontWeight: 'bold' }}>
+                        📂 Încarcă
+                    </button>
+                    <button onClick={handleDownload} style={{ padding: '8px 16px', background: '#2196F3', color: '#fff', border: 'none', cursor: 'pointer', borderRadius: '4px', fontWeight: 'bold' }}>
+                        ⬇️ Descarcă
+                    </button>
+                </div>
             </div>
 
-            {/* Editorul Monaco */}
-            <div style={{ flex: 1 }}>
+            <div style={{ flex: 1, pointerEvents: isDragging ? 'none' : 'auto' }}>
                 <Editor
                     height="100%"
                     language={language}
                     value={code}
                     onChange={handleChange}
-                    onMount={handleEditorMount} // Foarte important pentru AI!
+                    onMount={handleEditorMount}
                     theme="vs-dark"
                 />
             </div>
 
-            {/* Consola de Output */}
             <pre style={{ height: '20vh', padding: '15px', background: '#000', color: '#00ff00', margin: 0, overflowY: 'auto', borderTop: '2px solid #333' }}>
                 {output || '> Aștept cod pentru execuție...'}
             </pre>

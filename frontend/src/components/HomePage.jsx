@@ -12,6 +12,11 @@ export default function HomePage() {
         navigate('/editor');
     };
 
+    // Funcția pentru butonul secret
+    const gasesteSecretul = () => {
+        alert("Bravo, m-ai gasit");
+    };
+
     return(
         <div className="container-fundal">
             <h1 className="title-home-page"> 💻 ITECify 💻 </h1>
@@ -21,6 +26,8 @@ export default function HomePage() {
             <button onClick={mergiLaEditor} className="btn-start-coding">
                 Start Coding
             </button>
+
+            <button onClick={gasesteSecretul} className="btn-secret">?</button>
         </div>
     );
 }

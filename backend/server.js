@@ -61,4 +61,4 @@ app.post('/ai', async (req, res) => {
     }
 });
 
-server.listen(3001, () => console.log('Backend pornit pe portul 3001'));
+server.listen(3001, '0.0.0.0', () => console.log('Backend pornit pe portul 3001 pe toate interfețele!'));

@@ -6,6 +6,7 @@
 
 .container-fundal {
     min-height: 100vh;
+    position: relative; /* Foarte important pentru position: absolute de mai jos */
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -38,4 +39,25 @@
 .btn-start-coding:hover {
     background: #00ff41;
     color: #0d0d0d;
+}
+
+.btn-secret {
+    position: absolute; /* Se poziționează relativ la .container-fundal */
+    bottom: 20px;       /* Distanța de marginea de jos */
+    right: 20px;        /* Distanța de marginea din dreapta */
+
+    /* Poți adăuga și ceva stilizare să arate mai bine (opțional) */
+    background-color: transparent;
+    border: 1px solid rgba(204, 204, 204, 0.33);
+    color: rgba(204, 204, 204, 0.33);
+    padding: 5px 10px;
+    border-radius: 5px;
+    cursor: pointer;
+    opacity: 0.5; /* Să fie mai șters, să nu sară în ochi */
+    transition: all 0.3s ease;
+}
+
+.btn-secret:hover {
+    opacity: 1; /* Când pui mouse-ul, se luminează */
+    background-color: rgba(255, 255, 255, 0.1);
 }

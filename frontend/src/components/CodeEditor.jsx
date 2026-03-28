@@ -2,7 +2,10 @@ import Editor from '@monaco-editor/react';
 import { useEffect, useRef, useState } from 'react';
 import './CodeEditor.css'; // <-- Importul noului fișier CSS
 
-const WS_URL = 'ws://localhost:3001';
+// Șterge const WS_URL = 'ws://localhost:3001'; și pune asta:
+const HOST = window.location.hostname; // Va lua automat IP-ul corect
+const WS_URL = `ws://${HOST}:3001`;
+const API_URL = `http://${HOST}:3001/run`;
 
 export default function CodeEditor() {
     const [language, setLanguage] = useState('python');
@@ -73,7 +76,7 @@ export default function CodeEditor() {
         wsRef.current?.send(JSON.stringify({ type: 'output-update', output: startMsg }));
 
         try {
-            const res = await fetch('http://localhost:3001/run', {
+            const res = await fetch(API_URL, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ code, language, stdin })

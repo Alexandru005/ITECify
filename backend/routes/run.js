@@ -6,11 +6,31 @@ const execPromise = util.promisify(exec);
 const router = Router();
 
 const languageConfig = {
-    python: { image: 'python:3.9-alpine', fileName: 'script.py', command: 'python script.py' },
-    javascript: { image: 'node:18-alpine', fileName: 'script.js', command: 'node script.js' },
-    cpp: { image: 'gcc:latest', fileName: 'script.cpp', command: 'sh -c "g++ script.cpp -o program && ./program"' },
-    java: { image: 'eclipse-temurin:17-alpine', fileName: 'Main.java', command: 'sh -c "javac Main.java && java Main"' },
-    c: { image: 'gcc:latest',fileName: 'script.c', command: 'gcc -Wall -o exe script.c && ./exe' }
+    python: {
+        image: 'python:3.9-alpine',
+        fileName: 'script.py',
+        command: 'python script.py'
+    },
+    javascript: {
+        image: 'node:18-alpine',
+        fileName: 'script.js',
+        command: 'node script.js'
+    },
+    cpp: {
+        image: 'gcc:latest',
+        fileName: 'script.cpp',
+        command: 'g++ script.cpp -o program && ./program'
+    },
+    java: {
+        image: 'eclipse-temurin:17-alpine',
+        fileName: 'Main.java',
+        command: 'javac Main.java && java Main'
+    },
+    c: {
+        image: 'gcc:latest',
+        fileName: 'script.c',
+        command: 'gcc -Wall -o exe script.c && ./exe'
+    }
 };
 
 router.post('/', async (req, res) => {

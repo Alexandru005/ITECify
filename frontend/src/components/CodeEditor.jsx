@@ -1,31 +1,39 @@
 import Editor from '@monaco-editor/react';
 import { useEffect, useRef, useState } from 'react';
-import './CodeEditor.css';
+import './CodeEditor.css'; // Asigură-te că CSS-ul rămâne importat
 
 const WS_URL = 'ws://localhost:3001';
 
 export default function CodeEditor() {
+    // --- STĂRI (STATES) ---
     const [language, setLanguage] = useState('python');
     const [isRunning, setIsRunning] = useState(false);
-    const [code, setCode] = useState('print("Hello World")');
+    const [code, setCode] = useState('# scrie cod aici\n');
     const [output, setOutput] = useState('');
-    const [stdin, setStdin] = useState('');
-    const [isDragging, setIsDragging] = useState(false);
+    const [stdin, setStdin] = useState(''); // Date de intrare
+
+    // Colaborare
     const [connectedUsers, setConnectedUsers] = useState(1);
     const [fileName, setFileName] = useState('fisier_nou.txt');
-    const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
 
+    // UI Modal & Drag
+    const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+    const [isDragging, setIsDragging] = useState(false);
+
+    // --- REFERINȚE (REFS) ---
     const wsRef = useRef(null);
     const isRemoteUpdate = useRef(false);
     const editorRef = useRef(null);
     const monacoRef = useRef(null);
     const fileInputRef = useRef(null);
 
-    // --- REFERINȚE NOI PENTRU AI ---
-    const aiZoneIdRef = useRef(null); // ID-ul pop-up-ului AI
-    const oldDecorationsRef = useRef([]); // ID-ul culorilor de pe text
+    // AI Refs
+    const aiZoneIdRef = useRef(null);
+    const oldDecorationsRef = useRef([]);
 
-    // FUNCȚII PENTRU RANDAREA AI-ULUI (Pot fi apelate de oricine prin WebSockets)
+    // ==========================================
+    // LOGICA AI: FUNCȚII VIZUALE
+    // ==========================================
     const removeAiZone = () => {
         if (aiZoneIdRef.current && editorRef.current) {
             editorRef.current.changeViewZones(accessor => accessor.removeZone(aiZoneIdRef.current));
@@ -60,13 +68,13 @@ export default function CodeEditor() {
             removeAiZone();
             const linesCount = text.split('\n').length;
 
-            // Inserăm codul
+            // Inserăm codul în editor
             editorRef.current.executeEdits("AI_INSERT", [{
                 range: new monacoRef.current.Range(line + 1, 1, line + 1, 1),
                 text: text + '\n'
             }]);
 
-            // Anunțăm pe TOȚI (inclusiv pe noi) să aplice culoarea!
+            // Anunțăm pe toți și colorăm local
             wsRef.current?.send(JSON.stringify({ type: 'ai-accepted', startLine: line + 1, endLine: line + linesCount }));
             applyAiHighlight(line + 1, line + linesCount);
         };
@@ -85,7 +93,6 @@ export default function CodeEditor() {
     const applyAiHighlight = (startLine, endLine) => {
         if (!editorRef.current || !monacoRef.current) return;
 
-        // Aplicăm culoarea
         oldDecorationsRef.current = editorRef.current.deltaDecorations(oldDecorationsRef.current, [
             {
                 range: new monacoRef.current.Range(startLine, 1, endLine, 1),
@@ -97,7 +104,7 @@ export default function CodeEditor() {
             }
         ]);
 
-        // Ștergem culoarea automat după 3.5 secunde (efect vizual mult mai plăcut!)
+        // Efectul dispare după 3.5 secunde
         setTimeout(() => {
             if (editorRef.current) {
                 oldDecorationsRef.current = editorRef.current.deltaDecorations(oldDecorationsRef.current, []);
@@ -105,7 +112,9 @@ export default function CodeEditor() {
         }, 3500);
     };
 
-    // --- EFECTUL DE WEBSOCKETS ---
+    // ==========================================
+    // WEBSOCKETS (CONEXIUNE ȘI SINCRONIZARE)
+    // ==========================================
     useEffect(() => {
         const ws = new WebSocket(WS_URL);
         wsRef.current = ws;
@@ -121,12 +130,12 @@ export default function CodeEditor() {
             else if (msg.type === 'file-name-update') setFileName(msg.fileName);
             else if (msg.type === 'output-update') setOutput(msg.output);
 
-            // ASCULTĂM EVENIMENTELE AI
+            // AI Syncing
             else if (msg.type === 'ai-loading') showAiLoading(msg.line);
             else if (msg.type === 'ai-suggestion') showAiSuggestion(msg.line, msg.text);
             else if (msg.type === 'ai-accepted') {
                 removeAiZone();
-                // Așteptăm 100ms ca să fim siguri că textul nou a fost randat în editor înainte să-l colorăm
+                // Delay 100ms pentru a evita eroarea Monaco de care ne-am lovit anterior
                 setTimeout(() => {
                     applyAiHighlight(msg.startLine, msg.endLine);
                 }, 100);
@@ -137,6 +146,9 @@ export default function CodeEditor() {
         return () => ws.close();
     }, []);
 
+    // ==========================================
+    // LOGICĂ EDITOR ȘI EXECUȚIE COD
+    // ==========================================
     const handleEditorMount = (editor, monaco) => {
         editorRef.current = editor;
         monacoRef.current = monaco;
@@ -151,42 +163,6 @@ export default function CodeEditor() {
         wsRef.current?.send(JSON.stringify({ type: 'code-update', code: value }));
     };
 
-    // --- FUNCȚIA DE CERERE AI ---
-    const askAI = async () => {
-        if (!editorRef.current || !monacoRef.current) return;
-        const position = editorRef.current.getPosition();
-        const model = editorRef.current.getModel();
-
-        // 1. Anunțăm pe toți că AI-ul se gândește
-        wsRef.current?.send(JSON.stringify({ type: 'ai-loading', line: position.lineNumber }));
-        showAiLoading(position.lineNumber);
-
-        const codeBefore = model.getValueInRange({ startLineNumber: 1, startColumn: 1, endLineNumber: position.lineNumber, endColumn: position.column });
-        const codeAfter = model.getValueInRange({ startLineNumber: position.lineNumber, startColumn: position.column, endLineNumber: model.getLineCount(), endColumn: model.getLineMaxColumn(model.getLineCount()) });
-
-        try {
-            const response = await fetch('http://localhost:3001/ai', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ codeBefore, codeAfter, language })
-            });
-            const data = await response.json();
-
-            if (data.suggestion) {
-                // 2. Anunțăm pe toți că a venit sugestia
-                wsRef.current?.send(JSON.stringify({ type: 'ai-suggestion', line: position.lineNumber, text: data.suggestion }));
-                showAiSuggestion(position.lineNumber, data.suggestion);
-            } else {
-                removeAiZone();
-                wsRef.current?.send(JSON.stringify({ type: 'ai-rejected' }));
-            }
-        } catch (error) {
-            removeAiZone();
-            wsRef.current?.send(JSON.stringify({ type: 'ai-rejected' }));
-            alert("Eroare la AI.");
-        }
-    };
-
     const handleLanguageChange = (e) => {
         const newLang = e.target.value;
         setLanguage(newLang);
@@ -195,7 +171,7 @@ export default function CodeEditor() {
 
     const handleRun = async () => {
         setIsRunning(true);
-        const startMsg = '> Compiling code...\n';
+        const startMsg = '> Se execută codul...\n';
         setOutput(startMsg);
         wsRef.current?.send(JSON.stringify({ type: 'output-update', output: startMsg }));
 
@@ -221,6 +197,43 @@ export default function CodeEditor() {
         }
     };
 
+    const askAI = async () => {
+        if (!editorRef.current || !monacoRef.current) return;
+        const position = editorRef.current.getPosition();
+        const model = editorRef.current.getModel();
+
+        // Anunțăm colegii că AI-ul gândește
+        wsRef.current?.send(JSON.stringify({ type: 'ai-loading', line: position.lineNumber }));
+        showAiLoading(position.lineNumber);
+
+        const codeBefore = model.getValueInRange({ startLineNumber: 1, startColumn: 1, endLineNumber: position.lineNumber, endColumn: position.column });
+        const codeAfter = model.getValueInRange({ startLineNumber: position.lineNumber, startColumn: position.column, endLineNumber: model.getLineCount(), endColumn: model.getLineMaxColumn(model.getLineCount()) });
+
+        try {
+            const response = await fetch('http://localhost:3001/ai', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ codeBefore, codeAfter, language })
+            });
+            const data = await response.json();
+
+            if (data.suggestion) {
+                wsRef.current?.send(JSON.stringify({ type: 'ai-suggestion', line: position.lineNumber, text: data.suggestion }));
+                showAiSuggestion(position.lineNumber, data.suggestion);
+            } else {
+                removeAiZone();
+                wsRef.current?.send(JSON.stringify({ type: 'ai-rejected' }));
+            }
+        } catch (error) {
+            removeAiZone();
+            wsRef.current?.send(JSON.stringify({ type: 'ai-rejected' }));
+            alert("Eroare la AI.");
+        }
+    };
+
+    // ==========================================
+    // LOGICĂ FIȘIERE (UPLOAD, DRAG & DROP MODAL, DOWNLOAD)
+    // ==========================================
     const processFile = (file) => {
         if (!file) return;
         setFileName(file.name);
@@ -239,27 +252,18 @@ export default function CodeEditor() {
             setCode(fileContent);
             wsRef.current?.send(JSON.stringify({ type: 'code-update', code: fileContent }));
 
-            // DUPĂ CE FIȘIERUL S-A ÎNCĂRCAT, ÎNCHIDEM FEREASTRA AUTOMAT!
-            setIsUploadModalOpen(false);
+            setIsUploadModalOpen(false); // Închidem modalul automat
         };
         reader.readAsText(file);
     };
 
-    // Evenimentele de Drag & Drop acum se aplică DOAR pe fereastra mică
+    // Evenimente DOAR pentru zona de drop din modal
     const handleDragOver = (e) => { e.preventDefault(); setIsDragging(true); };
     const handleDragLeave = (e) => { e.preventDefault(); setIsDragging(false); };
-    const handleDrop = (e) => {
-        e.preventDefault();
-        setIsDragging(false);
-        processFile(e.dataTransfer.files[0]);
-    };
+    const handleDrop = (e) => { e.preventDefault(); setIsDragging(false); processFile(e.dataTransfer.files[0]); };
 
-    // Butonul principal "Încarcă" nu mai dă click pe input, ci deschide fereastra
     const handleUploadClick = () => setIsUploadModalOpen(true);
-
-    // Când dăm click pe zona punctată din fereastră, declanșăm exploratorul de fișiere
     const handleDropZoneClick = () => fileInputRef.current?.click();
-
     const handleFileSelect = (e) => { processFile(e.target.files[0]); e.target.value = null; };
 
     const handleDownload = () => {
@@ -278,14 +282,15 @@ export default function CodeEditor() {
         URL.revokeObjectURL(url);
     };
 
+    // ==========================================
+    // RANDARE INTERFAȚĂ (JSX)
+    // ==========================================
     return (
-        // 1. AM SCOS EVENIMENTELE DE DRAG DE AICI
         <div className="editor-container">
 
-            {/* 2. ADAUGĂ MODALUL DE UPLOAD AICI */}
+            {/* MODALUL PENTRU UPLOAD / DRAG & DROP */}
             {isUploadModalOpen && (
                 <div className="modal-overlay" onClick={() => setIsUploadModalOpen(false)}>
-                    {/* Oprim click-ul să nu închidă modalul dacă apăsăm pe centrul lui */}
                     <div className="upload-modal" onClick={(e) => e.stopPropagation()}>
 
                         <div className="modal-header">
@@ -293,7 +298,6 @@ export default function CodeEditor() {
                             <button className="btn-close" onClick={() => setIsUploadModalOpen(false)}>✖</button>
                         </div>
 
-                        {/* Asta e zona în care tragi fișiere SAU dai click */}
                         <div
                             className={`drop-zone ${isDragging ? 'active' : ''}`}
                             onDragOver={handleDragOver}
@@ -313,7 +317,7 @@ export default function CodeEditor() {
                 </div>
             )}
 
-            {/* --- TOOLBAR --- */}
+            {/* TOOLBAR */}
             <div className="toolbar">
                 <div className="online-badge">
                     <span className="status-dot"></span>
@@ -334,7 +338,6 @@ export default function CodeEditor() {
                     <option value="java">Java</option>
                 </select>
 
-                {/* --- BUTOANELE TALE SUNT AICI --- */}
                 <button className="btn btn-run" onClick={handleRun} disabled={isRunning}>
                     {isRunning ? '⏳ Se execută...' : '▶ Run Code'}
                 </button>
@@ -342,7 +345,6 @@ export default function CodeEditor() {
                 <button className="btn btn-ai" onClick={askAI}>
                     ✨ Cere AI
                 </button>
-                {/* -------------------------------- */}
 
                 <input type="file" ref={fileInputRef} onChange={handleFileSelect} className="hidden-input" accept=".py,.js,.cpp,.c,.java,.txt" />
 
@@ -355,14 +357,17 @@ export default function CodeEditor() {
                     </button>
                 </div>
             </div>
-            <div style={{ flex: 1, pointerEvents: isDragging ? 'none' : 'auto' }}>
+
+            {/* EDITOR */}
+            <div style={{ flex: 1 }}>
                 <Editor height="100%" language={language} value={code} onChange={handleChange} onMount={handleEditorMount} theme="vs-dark" />
             </div>
 
+            {/* ZONA DE INPUT / OUTPUT TERMINAL */}
             <div className="io-container">
                 <div className="io-box input-box">
                     <div className="io-header">📥 Date de intrare (Input)</div>
-                    <textarea value={stdin} onChange={(e) => setStdin(e.target.value)} placeholder="Dacă programul cere date, scrie-le aici..." className="io-textarea" />
+                    <textarea value={stdin} onChange={(e) => setStdin(e.target.value)} placeholder="Dacă programul cere date (ex: cin >> x), scrie-le aici..." className="io-textarea" />
                 </div>
                 <div className="io-box">
                     <div className="io-header">📤 Rezultat (Output)</div>
